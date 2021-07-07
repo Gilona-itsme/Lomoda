@@ -1,0 +1,19 @@
+{
+  "name": "lomoda",
+  "version": "1.0.0",
+  "description": "Lomoda marketplace",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Gilona-itsme/Lomoda.git"
+  },
+  "author": "Ilona Hil <ilona.gil@outlook.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Gilona-itsme/Lomoda/issues"
+  },
+  "homepage": "https://github.com/Gilona-itsme/Lomoda#readme"
+}
