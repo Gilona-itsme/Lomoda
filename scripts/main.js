@@ -4,6 +4,20 @@ const headerCityBtn = document.querySelector('.header__city-button');
 const subHeaderCart = document.querySelector('.subheader__cart');
 const cartOverlay = document.querySelector('.cart-overlay');
 const body = document.querySelector('body');
+const cardGood = document.querySelector('.card_good');
+
+const cardGoodImage = document.querySelector('.card-good__image');
+const cardGoodBrand = document.querySelector('.card-good__brand');
+const cardGoodTitle = document.querySelector('.card-good__title');
+const cardGoodPrice = document.querySelector('.card-good__price');
+const cardGoodColor = document.querySelector('.card-good__color');
+const cardGoodSelectWrapper = document.querySelectorAll(
+  '.card-good__select__wrapper',
+);
+const cardGoodColorList = document.querySelector('.card-good__color-list');
+const cardGoodSizes = document.querySelector('.card-good__sizes');
+const cardGoodSizesList = document.querySelector('.card-good__sizes-list');
+const cardGoodBuy = document.querySelector('.card-good__buy');
 
 let hash = location.hash.substring(1);
 
@@ -23,7 +37,10 @@ headerCityBtn.addEventListener('click', () => {
 
 /* Blocked scroll */
 const disableScroll = () => {
+  if (document.disableScroll) return;
   const widthScroll = window.innerWidth - document.body.offsetWidth;
+
+  document.disableScroll = true;
   document.body.dbScrollY = window.scrollY;
   document.body.style.cssText = `overFlow: hidden;
     position: fixed;
@@ -35,6 +52,7 @@ const disableScroll = () => {
 };
 
 const enableScroll = () => {
+  document.disableScroll = false;
   document.body.style.cssText = '';
   window.scroll({
     top: document.body.dbScrollY,
@@ -79,11 +97,11 @@ const getData = async () => {
   }
 };
 
-const getGoods = (cb, value) => {
+const getGoods = (cb, prop, value) => {
   getData()
     .then(data => {
       if (value) {
-        cb(data.filter(item => item.category === value));
+        cb(data.filter(item => item[prop] === value));
       } else {
         cb(data);
       }
@@ -93,25 +111,32 @@ const getGoods = (cb, value) => {
     });
 };
 
-const changeTitle = () => {
-  let navigationLink = document.querySelectorAll('.navigation__link');
-  const goodsTitle = document.querySelector('.goods__title');
+// const changeTitle = () => {
+//   let navigationLink = document.querySelectorAll('.navigation__link');
+//   const goodsTitle = document.querySelector('.goods__title');
 
-  navigationLink.forEach(link => {
-    console.log(link);
-    if (link.hash.substring(1) === hash) {
-      goodsTitle.textContent = link.innerHTML;
-    }
-  });
+//   navigationLink.forEach(link => {
+//     if (link.hash.substring(1) === hash) {
+//       goodsTitle.textContent = link.innerHTML;
+//     }
+//   });
+// };
 
-  console.log(hash);
-};
-
+/**Page category */
 try {
   const goodsList = document.querySelector('.goods__list');
   if (!goodsList) {
     throw 'This is not a goods page';
   }
+
+  const goodsTitle = document.querySelector('.goods__title');
+
+  const changeTitle = () => {
+    goodsTitle.textContent = document.querySelector(
+      `[href*="#${hash}"]`,
+    ).textContent;
+  };
+
   const craeteCard = ({ id, preview, cost, brand, name, sizes }) => {
     const li = document.createElement('li');
 
@@ -121,7 +146,7 @@ try {
                                 <img class="good__img" src=goods-image/${preview} alt="">
                             </a>
                             <div class="good__description">
-                                <p class="good__price">${cost} &#8381;</p>
+                                <p class="good__price">${cost} ₴</p>
                                 <h3 class="good__title">${brand} <span class="good__title__grey">/ ${name}</span></h3>
                               ${
                                 sizes
@@ -142,7 +167,7 @@ try {
 
   const renderGoodsList = data => {
     goodsList.textContent = '';
-    changeTitle();
+
     data.map(item => {
       const card = craeteCard(item);
 
@@ -152,36 +177,64 @@ try {
 
   window.addEventListener('hashchange', () => {
     hash = location.hash.substring(1);
-    getGoods(renderGoodsList, hash);
+    getGoods(renderGoodsList, 'category', hash);
+    changeTitle();
   });
-  getGoods(renderGoodsList, hash);
+  changeTitle();
+  getGoods(renderGoodsList, 'category', hash);
 } catch (error) {
   console.warn(error);
 }
 
-// try {
-//   const titleList = document.querySelector('.container');
+/**Page product */
 
-//   const createTitle = ({ category }) => {
-//     const title = document.createElement('h2');
+try {
+  if (cardGood) {
+    throw 'This`s not a card good';
+  }
 
-//     title.classList.add('goods__title');
-//     title.innerHTML = `<h2 class="goods__title">${category}</h2>`;
-//     return title;
-//   };
+  const generateList = data =>
+    data.reduce(
+      (acc, item, i) =>
+        acc + `<li class="card-good__select-item" data-id="${i}">${item}</li>`,
+      '',
+    );
 
-//   const renderTitle = data => {
-//     titleList.textContent = '';
-//     data.forEach(item => {
-//       const title = createTitle(item);
-//       titleList.append(title);
-//     });
-//   };
-//   window.addEventListener('hashchange', () => {
-//     hash = location.hash.substring(1);
-//     getGoods(renderTitle, hash);
-//   });
-//   getGoods(renderTitle, hash);
-// } catch (error) {
-//   console.warn(error);
-// }
+  const renderCardGood = ([{ brand, name, cost, color, sizes, photo }]) => {
+    cardGoodImage.src = `goods-image/${photo}`;
+    cardGoodImage.alt = ` ${brand} ${photo}`;
+    cardGoodBrand.textContent = brand;
+    cardGoodTitle.textContent = name;
+    cardGoodPrice.textContent = `${cost} ₴`;
+    color
+      ? (cardGoodColor.textContent = color[0])
+      : (cardGoodColor.style.display = 'none');
+    cardGoodColorList.innerHTML = generateList(color);
+    cardGoodColor.dataset.id = 0;
+
+    sizes
+      ? (cardGoodSizes.textContent = sizes[0])
+      : (cardGoodSizes.style.display = 'none');
+    cardGoodSizesList.innerHTML = generateList(sizes);
+    cardGoodSizes.dataset.id = 0;
+  };
+
+  cardGoodSelectWrapper.forEach(item => {
+    item.addEventListener('click', e => {
+      const target = e.target;
+      if (target.closest('.card-good__select')) {
+        target.classList.toggle('card-good__select__open');
+      }
+      if (target.closest('.card-good__select-item')) {
+        const cardGoodSelect = item.querySelector('.card-good__select');
+        cardGoodSelect.textContent = target.textContent;
+        cardGoodSelect.dataset.id = target.dataset.id;
+        cardGoodSelect.classList.remove('card-good__select__open');
+      }
+    });
+  });
+
+  getGoods(renderCardGood, 'id', hash);
+} catch (error) {
+  console.warn(error);
+}
