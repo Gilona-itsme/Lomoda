@@ -18,13 +18,17 @@ const cardGoodColorList = document.querySelector('.card-good__color-list');
 const cardGoodSizes = document.querySelector('.card-good__sizes');
 const cardGoodSizesList = document.querySelector('.card-good__sizes-list');
 const cardGoodBuy = document.querySelector('.card-good__buy');
+const cartListGoods = document.querySelector('.cart__list-goods');
+const cartTotalCost = document.querySelector('.cart__total-cost');
+const btnDelete = document.querySelector('.btn-delete');
+const subheaderCount = document.querySelector('.subheader__count');
 
 let hash = location.hash.substring(1);
 
 /*Change city */
 
 headerCityBtn.textContent =
-  localStorage.getItem('lomoda-location') || 'Ващ город?';
+  localStorage.getItem('lomoda-location') || 'Ваш город?';
 
 headerCityBtn.addEventListener('click', () => {
   const city = prompt('Укажите Ваш город');
@@ -63,6 +67,7 @@ const enableScroll = () => {
 const cartModalOpen = () => {
   cartOverlay.classList.add('cart-overlay-open');
   disableScroll();
+  renderCart();
 };
 
 const cartModalClose = () => {
@@ -141,34 +146,29 @@ try {
     const li = document.createElement('li');
 
     li.classList.add('goods__item');
-    li.innerHTML = `<article class="good">
-                            <a class="good__link-img" href="card-good.html#${id}">
-                                <img class="good__img" src=goods-image/${preview} alt="">
-                            </a>
-                            <div class="good__description">
-                                <p class="good__price">${cost} ₴</p>
-                                <h3 class="good__title">${brand} <span class="good__title__grey">/ ${name}</span></h3>
-                              ${
-                                sizes
-                                  ? `<p class="good__sizes">
-                                    Размеры (RUS):
-                                    <span class="good__sizes-list">
-                                      ${sizes.join(' ')}
-                                    </span>
-                                  </p>`
-                                  : ''
-                              }
-                                <a class="good__link" href="card-good.html#${id}">Подробнее</a>
-                            </div>
-                        </article>`;
+    li.innerHTML = `<article class="good">               
+        <a class="good__link-img" href="card-good.html#${id}">          
+            <img class="good__img" src=goods-image/${preview} alt=""> </a>
+                <div class="good__description">
+                    <p class="good__price">${cost} ₴</p>
+                        <h3 class="good__title">${brand}
+                        <span class="good__title__grey">/${name}</span></h3>
+ ${
+   sizes
+     ? `<p class="good__sizes">Размеры (RUS): <span class="good__sizes-list">${sizes.join(
+         ' ',
+       )}</span></p>`
+     : ''
+ }
+        <a class="good__link" href="card-good.html#${id}">Подробнее</a></div></article>`;
 
     return li;
   };
-
   const renderGoodsList = data => {
+    getCountItems();
     goodsList.textContent = '';
 
-    data.map(item => {
+    data.forEach(item => {
       const card = craeteCard(item);
 
       goodsList.append(card);
@@ -200,23 +200,57 @@ try {
       '',
     );
 
-  const renderCardGood = ([{ brand, name, cost, color, sizes, photo }]) => {
+  const renderCardGood = ([{ id, brand, name, cost, color, sizes, photo }]) => {
+    const data = { brand, name, cost, id };
+    getCountItems();
     cardGoodImage.src = `goods-image/${photo}`;
     cardGoodImage.alt = ` ${brand} ${photo}`;
     cardGoodBrand.textContent = brand;
     cardGoodTitle.textContent = name;
     cardGoodPrice.textContent = `${cost} ₴`;
-    color
-      ? (cardGoodColor.textContent = color[0])
-      : (cardGoodColor.style.display = 'none');
-    cardGoodColorList.innerHTML = generateList(color);
-    cardGoodColor.dataset.id = 0;
+    if (color) {
+      cardGoodColor.textContent = color[0];
+      cardGoodColorList.innerHTML = generateList(color);
+      cardGoodColor.dataset.id = 0;
+    } else {
+      cardGoodColor.style.display = 'none';
+    }
 
-    sizes
-      ? (cardGoodSizes.textContent = sizes[0])
-      : (cardGoodSizes.style.display = 'none');
-    cardGoodSizesList.innerHTML = generateList(sizes);
-    cardGoodSizes.dataset.id = 0;
+    if (sizes) {
+      cardGoodSizes.textContent = sizes[0];
+
+      cardGoodSizesList.innerHTML = generateList(sizes);
+      cardGoodSizes.dataset.id = 0;
+    } else {
+      cardGoodSizes.style.display = 'none';
+    }
+    const isAddItm = getLocalStorage().some(item => item.id === id);
+    if (isAddItm) {
+      cardGoodBuy.textContent = 'Удалить из корзины';
+      cardGoodBuy.classList.add('delete');
+    }
+
+    cardGoodBuy.addEventListener('click', () => {
+      if (cardGoodBuy.classList.contains('delete')) {
+        deleteItemCart(id);
+        cardGoodBuy.textContent = 'Добавить в корзину';
+        cardGoodBuy.classList.remove('delete');
+        getCountItems();
+        return;
+      }
+
+      if (color) data.color = cardGoodColor.textContent;
+      if (sizes) data.sizes = cardGoodSizes.textContent;
+
+      cardGoodBuy.textContent = 'Удалить из корзины';
+      cardGoodBuy.classList.add('delete');
+
+      const cardData = getLocalStorage();
+      cardData.push(data);
+
+      setLocalStorage(cardData);
+      getCountItems();
+    });
   };
 
   cardGoodSelectWrapper.forEach(item => {
@@ -238,3 +272,60 @@ try {
 } catch (error) {
   console.warn(error);
 }
+
+/** Shopping Cart */
+
+const getLocalStorage = () =>
+  JSON?.parse(localStorage.getItem('cart-lomoda')) || [];
+
+const setLocalStorage = data =>
+  localStorage.setItem('cart-lomoda', JSON.stringify(data));
+
+const renderCart = () => {
+  cartListGoods.textContent = '';
+
+  const cartItems = getLocalStorage();
+
+  let totalPrice = 0;
+
+  cartItems.forEach((item, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+        <td >${i + 1}</td>
+        <td>${item.brand} ${item.name}</td>
+        ${item.color ? ` <td>${item.color}</td>` : '<td>-</td>'}
+          ${item.sizes ? ` <td>${item.sizes}</td>` : '<td>-</td>'}
+      
+        <td>${item.cost} ₴</td>
+        <td><button class="btn-delete" data-id="${
+          item.id
+        }">&times;</button></td>
+   `;
+
+    totalPrice += item.cost;
+
+    cartListGoods.append(tr);
+  });
+  getCountItems();
+  cartTotalCost.textContent = totalPrice + ` ₴`;
+};
+
+const deleteItemCart = id => {
+  const cartItems = getLocalStorage();
+  const newCartItems = cartItems.filter(item => item.id !== id);
+
+  setLocalStorage(newCartItems);
+};
+
+cartListGoods.addEventListener('click', e => {
+  if (e.target.matches('.btn-delete')) {
+    deleteItemCart(e.target.dataset.id);
+    renderCart();
+  }
+});
+
+const getCountItems = e => {
+  const count = getLocalStorage();
+
+  subheaderCount.textContent = count.length;
+};
